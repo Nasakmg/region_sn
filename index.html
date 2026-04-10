@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -29,7 +29,7 @@
             flex-direction: column;
             height: 100vh;
         }
-        /* Header avec dégradé et auteur */
+        /* Header fixe */
         .main-header {
             background: linear-gradient(135deg, #0b2b1f 0%, #1e4a36 100%);
             color: white;
@@ -65,19 +65,14 @@
             padding: 5px 12px;
             border-radius: 40px;
             font-size: 0.85rem;
-            font-weight: 400;
             display: flex;
             align-items: center;
             gap: 8px;
-        }
-        .author i {
-            font-size: 0.9rem;
         }
         .subtitle {
             font-size: 0.8rem;
             opacity: 0.9;
             margin-top: 4px;
-            width: 100%;
         }
         /* Layout principal */
         .main-layout {
@@ -85,7 +80,7 @@
             flex: 1;
             overflow: hidden;
         }
-        /* Panneau latéral */
+        /* Panneau latéral (desktop) */
         .info-panel {
             width: 300px;
             background: white;
@@ -207,10 +202,69 @@
             border-top: 1px solid #334155;
             z-index: 10;
         }
-        /* Responsive */
+        /* ========== BARRE MOBILE (masquée par défaut, visible si <=768px) ========== */
+        .mobile-controls {
+            display: none;
+            background: white;
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            z-index: 6;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .mobile-select-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .mobile-select-group select {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+        }
+        .mobile-search {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 0 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .mobile-search i {
+            color: #94a3b8;
+        }
+        .mobile-search input {
+            flex: 1;
+            border: none;
+            padding: 10px 0;
+            background: transparent;
+            outline: none;
+            font-size: 0.9rem;
+        }
+        .mobile-region-count {
+            background: #1e4a36;
+            color: white;
+            border-radius: 20px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        /* Responsive : sur mobile, on cache le panneau latéral et on affiche la barre mobile */
         @media (max-width: 768px) {
             .info-panel {
-                width: 260px;
+                display: none;
+            }
+            .mobile-controls {
+                display: flex;
             }
             .logo-area h1 {
                 font-size: 1.2rem;
@@ -219,28 +273,13 @@
                 font-size: 0.7rem;
                 padding: 3px 8px;
             }
-            .region-item {
-                padding: 0.5rem 1rem;
-            }
-        }
-        @media (max-width: 600px) {
-            .info-panel {
-                width: 240px;
-            }
-            .header-content {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .author {
-                align-self: flex-start;
-            }
         }
         @media (max-width: 480px) {
-            .info-panel {
-                width: 220px;
+            .mobile-select-group {
+                flex-wrap: wrap;
             }
-            .panel-header h3 {
-                font-size: 0.9rem;
+            .mobile-region-count {
+                align-self: flex-start;
             }
         }
     </style>
@@ -261,7 +300,20 @@
         <div class="subtitle">Cartographie interactive des régions | Superficies officielles</div>
     </header>
 
+    <!-- Barre d'outils mobile (select + recherche) -->
+    <div class="mobile-controls" id="mobileControls">
+        <div class="mobile-select-group">
+            <select id="regionSelect"></select>
+            <div class="mobile-region-count" id="mobileRegionCount">0</div>
+        </div>
+        <div class="mobile-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="mobileSearchInput" placeholder="Rechercher une région...">
+        </div>
+    </div>
+
     <div class="main-layout">
+        <!-- Panneau latéral desktop -->
         <aside class="info-panel">
             <div class="panel-header">
                 <i class="fas fa-list-ul"></i>
@@ -289,13 +341,21 @@
 
 <script>
     let map, geoJsonLayer, regionsData = [];
-    // Palette de couleurs pour les régions (générée dynamiquement)
     const colorPalette = [
         '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
         '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5', '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5'
     ];
 
-    // Initialisation de la carte
+    function getColorForRegion(regionName) {
+        let hash = 0;
+        for (let i = 0; i < regionName.length; i++) {
+            hash = ((hash << 5) - hash) + regionName.charCodeAt(i);
+            hash |= 0;
+        }
+        return colorPalette[Math.abs(hash) % colorPalette.length];
+    }
+
+    // Initialisation carte
     map = L.map('map').setView([14.5, -14.5], 7);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CartoDB</a>',
@@ -308,68 +368,13 @@
     const regionsListDiv = document.getElementById('regionsList');
     const searchInput = document.getElementById('searchInput');
     const regionCountSpan = document.getElementById('regionCount');
+    // Éléments mobiles
+    const regionSelect = document.getElementById('regionSelect');
+    const mobileSearchInput = document.getElementById('mobileSearchInput');
+    const mobileRegionCountSpan = document.getElementById('mobileRegionCount');
 
-    // Fonction pour générer une couleur cohérente par région (basée sur le nom)
-    function getColorForRegion(regionName) {
-        let hash = 0;
-        for (let i = 0; i < regionName.length; i++) {
-            hash = ((hash << 5) - hash) + regionName.charCodeAt(i);
-            hash |= 0;
-        }
-        const index = Math.abs(hash) % colorPalette.length;
-        return colorPalette[index];
-    }
+    let currentFilter = ''; // pour filtrer les listes et le select
 
-    // Chargement des données depuis l'API
-    fetch('api/regions.php')
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) throw new Error(data.error);
-            regionsData = data.features;
-            regionCountSpan.textContent = regionsData.length;
-
-            // Ajout d'une propriété couleur à chaque feature
-            regionsData.forEach(f => {
-                f.properties.color = getColorForRegion(f.properties.nom);
-            });
-
-            // Création de la couche GeoJSON avec style dynamique par région
-            geoJsonLayer = L.geoJSON(regionsData, {
-                style: (feature) => ({
-                    color: '#333',
-                    weight: 1.2,
-                    fillColor: feature.properties.color,
-                    fillOpacity: 0.65,
-                    opacity: 0.7
-                }),
-                onEachFeature: (feature, layer) => {
-                    const props = feature.properties;
-                    layer.bindPopup(`
-                        <b>${props.nom}</b><br>
-                        <i class="fas fa-chart-line"></i> Superficie: ${props.superficie.toLocaleString()} ha
-                    `);
-                    layer.on('mouseover', () => {
-                        layer.setStyle({ weight: 3, color: '#ffd966', fillOpacity: 0.85 });
-                        layer.bringToFront();
-                    });
-                    layer.on('mouseout', () => geoJsonLayer.resetStyle(layer));
-                    layer.on('click', () => {
-                        map.fitBounds(layer.getBounds());
-                        layer.openPopup();
-                        highlightRegionInList(props.nom);
-                    });
-                }
-            }).addTo(map);
-
-            map.fitBounds(geoJsonLayer.getBounds());
-            renderRegionsList(regionsData);
-        })
-        .catch(err => {
-            console.error(err);
-            regionsListDiv.innerHTML = '<div class="error" style="color:red;">⚠️ Erreur chargement des données. Vérifiez l\'API.</div>';
-        });
-
-    // Affichage de la liste des régions avec pastilles couleur
     function renderRegionsList(features) {
         if (!features || features.length === 0) {
             regionsListDiv.innerHTML = '<div class="no-results">Aucune région trouvée</div>';
@@ -389,28 +394,33 @@
             `;
         });
         regionsListDiv.innerHTML = html;
+        attachListEvents();
+    }
 
-        // Ajout des événements clic sur chaque élément
+    function attachListEvents() {
         document.querySelectorAll('.region-item').forEach(item => {
             item.addEventListener('click', () => {
                 const nom = item.getAttribute('data-nom');
                 const feature = regionsData.find(f => f.properties.nom === nom);
-                if (feature && geoJsonLayer) {
-                    let targetLayer;
-                    geoJsonLayer.eachLayer(layer => {
-                        if (layer.feature.properties.nom === nom) targetLayer = layer;
-                    });
-                    if (targetLayer) {
-                        map.fitBounds(targetLayer.getBounds());
-                        targetLayer.openPopup();
-                        highlightRegionInList(nom);
-                    }
-                }
+                if (feature && geoJsonLayer) focusOnRegion(nom);
             });
         });
     }
 
-    // Mettre en surbrillance l'élément de la liste correspondant à la région
+    function focusOnRegion(nom) {
+        let targetLayer = null;
+        geoJsonLayer.eachLayer(layer => {
+            if (layer.feature.properties.nom === nom) targetLayer = layer;
+        });
+        if (targetLayer) {
+            map.fitBounds(targetLayer.getBounds());
+            targetLayer.openPopup();
+            highlightRegionInList(nom);
+            // Mettre à jour le select mobile si besoin
+            if (regionSelect) regionSelect.value = nom;
+        }
+    }
+
     function highlightRegionInList(nom) {
         document.querySelectorAll('.region-item').forEach(item => {
             const isMatch = item.getAttribute('data-nom') === nom;
@@ -419,13 +429,94 @@
         });
     }
 
-    // Filtre de recherche
-    searchInput.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase().trim();
-        if (!term) return renderRegionsList(regionsData);
-        const filtered = regionsData.filter(f => f.properties.nom.toLowerCase().includes(term));
+    function updateMobileSelect(features) {
+        if (!regionSelect) return;
+        regionSelect.innerHTML = '';
+        if (features.length === 0) {
+            regionSelect.innerHTML = '<option disabled>Aucune région</option>';
+            return;
+        }
+        features.forEach(f => {
+            const option = document.createElement('option');
+            option.value = f.properties.nom;
+            option.textContent = `${f.properties.nom} (${f.properties.superficie.toLocaleString()} ha)`;
+            regionSelect.appendChild(option);
+        });
+        regionSelect.disabled = false;
+        regionSelect.addEventListener('change', (e) => {
+            if (e.target.value) focusOnRegion(e.target.value);
+        });
+    }
+
+    function filterData(term) {
+        if (!term) return regionsData;
+        return regionsData.filter(f => f.properties.nom.toLowerCase().includes(term.toLowerCase()));
+    }
+
+    function applyFilter() {
+        const filtered = filterData(currentFilter);
+        regionCountSpan.textContent = filtered.length;
+        if (mobileRegionCountSpan) mobileRegionCountSpan.textContent = filtered.length;
         renderRegionsList(filtered);
+        updateMobileSelect(filtered);
+    }
+
+    // Chargement des données depuis l'API
+    fetch('api/regions.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            regionsData = data.features;
+            regionsData.forEach(f => {
+                f.properties.color = getColorForRegion(f.properties.nom);
+            });
+            regionCountSpan.textContent = regionsData.length;
+            if (mobileRegionCountSpan) mobileRegionCountSpan.textContent = regionsData.length;
+
+            geoJsonLayer = L.geoJSON(regionsData, {
+                style: (feature) => ({
+                    color: '#333',
+                    weight: 1.2,
+                    fillColor: feature.properties.color,
+                    fillOpacity: 0.65,
+                    opacity: 0.7
+                }),
+                onEachFeature: (feature, layer) => {
+                    const props = feature.properties;
+                    layer.bindPopup(`<b>${props.nom}</b><br><i class="fas fa-chart-line"></i> Superficie: ${props.superficie.toLocaleString()} ha`);
+                    layer.on('mouseover', () => {
+                        layer.setStyle({ weight: 3, color: '#ffd966', fillOpacity: 0.85 });
+                        layer.bringToFront();
+                    });
+                    layer.on('mouseout', () => geoJsonLayer.resetStyle(layer));
+                    layer.on('click', () => {
+                        map.fitBounds(layer.getBounds());
+                        layer.openPopup();
+                        highlightRegionInList(props.nom);
+                        if (regionSelect) regionSelect.value = props.nom;
+                    });
+                }
+            }).addTo(map);
+            map.fitBounds(geoJsonLayer.getBounds());
+            applyFilter(); // affiche la liste complète
+        })
+        .catch(err => {
+            console.error(err);
+            regionsListDiv.innerHTML = '<div class="error" style="color:red;">⚠️ Erreur chargement des données. Vérifiez l\'API.</div>';
+        });
+
+    // Écouteurs de recherche (desktop et mobile)
+    searchInput.addEventListener('input', (e) => {
+        currentFilter = e.target.value;
+        applyFilter();
     });
+    if (mobileSearchInput) {
+        mobileSearchInput.addEventListener('input', (e) => {
+            currentFilter = e.target.value;
+            if (searchInput) searchInput.value = currentFilter;
+            applyFilter();
+        });
+    }
 </script>
 </body>
 </html>
