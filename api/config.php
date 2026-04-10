@@ -1,22 +1,5 @@
- */
+
 <?php
-/*
-// Connexion locale (à modifier selon vos paramètres)
-$host = 'localhost';
-$port = '5432';
-$dbname = 'render';      // nom de votre base locale
-$user = 'postgres';
-$password = 'NASA';
-
-try {
-    $pdo = new PDO("pgsql:host=$host;port=$port;dbname=$dbname", $user, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
-    */
-
-
 $database_url = getenv('DATABASE_URL');
 if ($database_url) {
     // Parser l'URL
